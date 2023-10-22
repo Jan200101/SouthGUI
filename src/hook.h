@@ -10,7 +10,7 @@ class Hook
 {
     private:
         Plugin* parent;
-        bool show_gui = false;
+        bool show_gui = true;
 
         void renderMenuBar();
         void renderSQVMConsole(bool pShow = false);

@@ -11,6 +11,9 @@
 #include "hook.h"
 #include "plugin.h"
 
+#define IsMouseMsg(uMsg) ((uMsg) >= WM_MOUSEFIRST && (uMsg) <= WM_MOUSELAST)
+#define IsKeyMsg(uMsg) ((uMsg) >= WM_KEYFIRST && (uMsg) <= WM_KEYLAST)
+
 typedef HRESULT(__stdcall* Present) (IDXGISwapChain* pSwapChain, UINT SyncInterval, UINT Flags);
 typedef LRESULT(CALLBACK* WNDPROC)(HWND, UINT, WPARAM, LPARAM);
 
@@ -27,9 +30,22 @@ extern LRESULT ImGui_ImplWin32_WndProcHandler(HWND hWnd, UINT msg, WPARAM wParam
 
 LRESULT __stdcall WndProc(const HWND hWnd, UINT uMsg, WPARAM wParam, LPARAM lParam)
 {
-    if (g_hook && g_hook->should_show())
+    // Don't pass to imgui if there's no cursor visible
+    if (uMsg == WM_SETCURSOR)
     {
-        ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam);
+        return CallWindowProc(oWndProc, hWnd, uMsg, wParam, lParam);
+    }
+
+    ImGui_ImplWin32_WndProcHandler(hWnd, uMsg, wParam, lParam);
+
+    if (IsMouseMsg(uMsg) && ImGui::GetIO().WantCaptureMouse)
+    {
+        return 0;
+    }
+
+    if (IsKeyMsg(uMsg) && ImGui::GetIO().WantCaptureKeyboard)
+    {
+        return 0;
     }
 
     return CallWindowProc(oWndProc, hWnd, uMsg, wParam, lParam);
@@ -100,6 +116,10 @@ Hook::~Hook()
 {
     g_hook = nullptr;
     kiero::unbind(8);
+
+    ImGui_ImplDX11_Shutdown();
+    ImGui_ImplWin32_Shutdown();
+    ImGui::DestroyContext();
 }
 
 void Hook::init(HWND window, ID3D11Device* pDevice, ID3D11DeviceContext* pContext)
@@ -116,6 +136,7 @@ void Hook::init(HWND window, ID3D11Device* pDevice, ID3D11DeviceContext* pContex
 
     ImGui_ImplWin32_Init(window);
     ImGui_ImplDX11_Init(pDevice, pContext);
+    ImGui_ImplDX11_CreateDeviceObjects();
 }
 
 void Hook::renderMenuBar()
@@ -192,7 +213,6 @@ void Hook::render(ID3D11DeviceContext* pContext, ID3D11RenderTargetView** pMainR
     ImGui::ShowDemoWindow();
 
     ImGui::Render();
-
-    pContext->OMSetRenderTargets(1, pMainRenderTargetView, NULL);
+    
     ImGui_ImplDX11_RenderDrawData(ImGui::GetDrawData());
 }

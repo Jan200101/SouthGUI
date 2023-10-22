@@ -7,7 +7,6 @@ HANDLE dx_thread = nullptr;
 static ID3D11Device*            g_pd3dDevice = nullptr;
 static ID3D11DeviceContext*     g_pd3dDeviceContext = nullptr;
 static IDXGISwapChain*          g_pSwapChain = nullptr;
-static UINT                     g_ResizeWidth = 0, g_ResizeHeight = 0;
 static ID3D11RenderTargetView*  g_mainRenderTargetView = nullptr;
 
 static FLOAT color[] = { 0, 0, 0, 0.0 };
@@ -47,19 +46,17 @@ static LRESULT WINAPI wndProc(HWND hwnd, UINT msg, WPARAM wParam, LPARAM lParam)
 
             D3D11_VIEWPORT viewport = {
                 0.0f, 0.0f,
-                (FLOAT)(rc.right - rc.left),
-                (FLOAT)(rc.bottom - rc.top),
+                LOWORD(lParam),
+                HIWORD(lParam),
                 0.0f, 1.0f
             };
-
-            spdlog::info("height {}", viewport.Height);
-            spdlog::info("width {}", viewport.Width);
 
             g_pd3dDeviceContext->ClearRenderTargetView(g_mainRenderTargetView, color);
 
             g_pd3dDeviceContext->RSSetViewports(1u, &viewport);
 
             g_pSwapChain->Present(1, 0);
+
         }
         break;
     }
@@ -116,6 +113,7 @@ static DWORD WINAPI dx_main(void* param)
         viewport.Width = rc.right - rc.left;
         viewport.Height = rc.bottom - rc.top;
         g_pd3dDeviceContext->RSSetViewports(1u, &viewport);
+        g_pd3dDeviceContext->OMSetRenderTargets(1, &g_mainRenderTargetView, NULL);
     }
     spdlog::info("Initialized DirectX");
 
@@ -124,6 +122,7 @@ static DWORD WINAPI dx_main(void* param)
 
     // draw the initial gray window
     g_pd3dDeviceContext->ClearRenderTargetView(g_mainRenderTargetView, color);
+
     g_pSwapChain->Present(1, 0);
 
     SetTimer(hwnd, 0, 12, NULL);
@@ -131,10 +130,19 @@ static DWORD WINAPI dx_main(void* param)
     srand(GetTickCount());
 
     // message loop
-    while (GetMessage(&msg, NULL, 0, 0))
+    bool running = true;
+    while(running)
     {
-        TranslateMessage(&msg);
-        DispatchMessage(&msg);
+        while (::PeekMessage(&msg, nullptr, 0U, 0U, PM_REMOVE))
+        {
+            TranslateMessage(&msg);
+            DispatchMessage(&msg);
+            if (msg.message == WM_QUIT)
+                running = false;
+        }
+        if (!running)
+            break;
+
     }
 
     KillTimer(hwnd, 0);
