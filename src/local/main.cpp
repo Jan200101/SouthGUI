@@ -1,12 +1,18 @@
+#include "dx.h"
 #include "ns_plugin.h"
 #include "plugin.h"
-#include "handler.h"
 
-int main()
+int WinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int nShowCmd)
 {
-	spdlog::info("Main");
+    spdlog::info("Main");
 
-	Plugin plugin(nullptr, nullptr);
+    Plugin plugin(nullptr, nullptr);
 
-	plugin.server->run();
+    DxMain(hInstance, hPrevInstance, lpCmdLine, nShowCmd);
+
+    plugin.hook();
+
+    WaitForSingleObject(dx_thread, INFINITE);
+
+    return 0;
 }

@@ -30,7 +30,6 @@ void PLUGIN_INFORM_DLL_LOAD(PluginLoadDLL dll, void* data) {
     switch (dll) {
         case PluginLoadDLL::ENGINE:
             plugin->LoadEngineData(data);
-            plugin->StartServer();
         case PluginLoadDLL::CLIENT:
             break;
         case PluginLoadDLL::SERVER:
@@ -60,6 +59,10 @@ void PLUGIN_INFORM_SQVM_CREATED(ScriptContext context, CSquirrelVM* sqvm)
 {
     assert(plugin);
     plugin->LoadSQVM(context, sqvm);
+
+    if (context == ScriptContext::UI)
+        plugin->hook();
+
 }
 
 extern "C" __declspec(dllexport)

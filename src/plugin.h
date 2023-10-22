@@ -8,7 +8,7 @@
 #include "internal/convarproxy.h"
 #include "internal/sqfuncregistrationproxy.h"
 
-class ServerHandler;
+class Hook;
 
 class Plugin {
     private:
@@ -36,12 +36,11 @@ class Plugin {
 
         std::vector<SQFuncRegistrationProxy*> squirrel_functions;
 
-        void register_server_callbacks();
         HMODULE GetModuleByName(const char* name);
 
-    public:
-        ServerHandler* server = nullptr;
+        Hook* gui_hook = nullptr;
 
+    public:
         Plugin(PluginInitFuncs* funcs, PluginNorthstarData* data);
         ~Plugin();
 
@@ -50,7 +49,6 @@ class Plugin {
         void LoadSQVM(ScriptContext context, CSquirrelVM* sqvm);
         void RemoveSQVM(ScriptContext context);
 
-        void StartServer();
         void RunCommand(const char* cmd);
         SQRESULT RunSquirrelCode(ScriptContext context, std::string code, SQObject* ret_val);
         SQFuncRegistrationProxy* AddNativeSquirrelFunction(std::string returnType, std::string name, std::string argTypes, std::string helpText, ScriptContext context, SQFunction func);
@@ -58,6 +56,8 @@ class Plugin {
         // Wraps around the internals we receive
         ConCommandProxy* ConCommand(const char* name, FnCommandCallback_t callback, const char* helpString, int flags, void* parent = nullptr);
         ConVarProxy* ConVar(const char* pszName, const char* pszDefaultValue, int nFlags, const char* pszHelpString, bool bMin = 0, float fMin = 0, bool bMax = 0, float fMax = 0, FnChangeCallback_t pCallback = nullptr);
+
+        void hook();
 };
 
 #endif
